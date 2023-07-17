@@ -208,47 +208,14 @@ void MeasurementBuffer::BufferPCLCloud(const \
       sor1.filter (*cld_global);
     }
 
-    // 使用_tf 获取 base_link 相对于 odom 的变换矩阵
-    // tf::StampedTransform transform;
-    // try
-    // {
-    //   _tf.waitForTransform(_global_frame, "base_link", ros::Time(0), ros::Duration(0.2));
-    //   _tf.lookupTransform(_global_frame, "base_link", ros::Time(0), transform);
-    // }
-    // catch (tf::TransformException ex)
-    // {
-    //   ROS_ERROR("%s", ex.what());
-    // }
-    // tf::Vector3 min_range(0.4, -5.0, 0.3);
-    // tf::Vector3 max_range(3.0, 5.0, 2.0);
-    // tf::Vector3 mapped_min_range = transform * min_range;
-    // tf::Vector3 mapped_max_range = transform * max_range;
     // remove points that are below or above our height restrictions
     pcl::PointCloud<pcl::PointXYZ>& obs_cloud =
         *(_observation_list.front()._cloud);
     unsigned int cloud_size = cld_global->points.size();
 
     obs_cloud.points.resize(cloud_size);
-    unsigned int point_count = 0;
-    pcl::PointCloud<pcl::PointXYZ>::iterator it;
-    for (it = cld_global->begin(); it != cld_global->end(); ++it)
-    {
-      if (it->z <= _max_obstacle_height && it->z >= _min_obstacle_height)
-      {
-        obs_cloud.points.at(point_count++) = *it;
-      }
-      // if (it->x >= mapped_min_range.x() && it->x <= mapped_max_range.x() &&
-      //     it->y >= mapped_min_range.y() && it->y <= mapped_max_range.y() &&
-      //     it->z >= mapped_min_range.z() && it->z <= mapped_max_range.z())
-      // {
-      //   obs_cloud.points.at(point_count++) = *it;
-      // }
-    }
-
-    // resize the cloud for the number of legal points
-    obs_cloud.points.resize(point_count);
+    obs_cloud = *cld_global;
     obs_cloud.header.stamp = cloudFiltered->header.stamp;
-    obs_cloud.header.frame_id = cld_global->header.frame_id;
   }
   catch (tf::TransformException& ex)
   {
