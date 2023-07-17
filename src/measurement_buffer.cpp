@@ -35,6 +35,8 @@
  * Author: Steve Macenski (steven.macenski@simberobotics.com)
  *********************************************************************/
 
+#include "pcl/filters/crop_box.h"
+#include <pcl/filters/passthrough.h>
 #include <spatio_temporal_voxel_layer/measurement_buffer.hpp>
 
 namespace buffer
@@ -80,6 +82,8 @@ MeasurementBuffer::MeasurementBuffer(const std::string& topic_name,          \
     _clear_buffer_after_reading(clear_buffer_after_reading),
     _model_type(model_type)
 {
+  _max_obstacle_angle = 0.57;
+  _min_obstacle_angle = -0.57;
 }
 
 /*****************************************************************************/
@@ -119,6 +123,30 @@ void MeasurementBuffer::BufferPCLCloud(const \
   const std::string origin_frame = \
                   _sensor_frame == "" ? cloud.header.frame_id : _sensor_frame;
 
+  tf::Vector3 min_range(-0.3, -5.0, 0.1);
+  tf::Vector3 max_range(2.0, 5.0, 5.0);
+  // 删除不在范围内的点
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloudFiltered(new pcl::PointCloud<pcl::PointXYZ>),cloud2 = cloud.makeShared();
+  // 定义PassThrough滤波器对象
+  pcl::PassThrough<pcl::PointXYZ> passFilter;
+
+  // 设置滤波器参数
+  passFilter.setInputCloud(cloud2);
+  passFilter.setFilterFieldName("x");
+  passFilter.setFilterLimits(-1.5, 0.2); // 设置x范围
+  passFilter.filter(*cloudFiltered);
+
+  passFilter.setInputCloud(cloudFiltered);
+  passFilter.setFilterFieldName("y");
+  passFilter.setFilterLimits(-5.0, 5.0); // 设置y范围
+  passFilter.filter(*cloudFiltered);
+
+  passFilter.setInputCloud(cloudFiltered);
+  passFilter.setFilterFieldName("z");
+  passFilter.setFilterLimits(0.0, 5.0); // 设置z范围
+  passFilter.filter(*cloudFiltered);
+	// ROS_ERROR("cloudFiltered size: %lu",cloudFiltered->size());
+
   try
   {
     // transform into global frame
@@ -126,7 +154,7 @@ void MeasurementBuffer::BufferPCLCloud(const \
     tf::Stamped<tf::Pose> local_pose, global_pose;
     local_pose.setOrigin(tf::Vector3(0, 0, 0));
     local_pose.setRotation(tf::Quaternion(0, 0, 0, 1));
-    local_pose.stamp_ = pcl_conversions::fromPCL(cloud.header).stamp;
+    local_pose.stamp_ = pcl_conversions::fromPCL(cloudFiltered->header).stamp;
     local_pose.frame_id_ = origin_frame;
 
     _tf.waitForTransform(_global_frame, local_pose.frame_id_, \
@@ -159,8 +187,8 @@ void MeasurementBuffer::BufferPCLCloud(const \
 
     point_cloud_ptr cld_global(new pcl::PointCloud<pcl::PointXYZ>);
 
-    pcl_ros::transformPointCloud(_global_frame, cloud, *cld_global, _tf);
-    cld_global->header.stamp = cloud.header.stamp;
+    pcl_ros::transformPointCloud(_global_frame, *cloudFiltered, *cld_global, _tf);
+    cld_global->header.stamp = cloudFiltered->header.stamp;
 
     // if user wants to use a voxel filter
     if ( _voxel_filter )
@@ -180,9 +208,24 @@ void MeasurementBuffer::BufferPCLCloud(const \
       sor1.filter (*cld_global);
     }
 
+    // 使用_tf 获取 base_link 相对于 odom 的变换矩阵
+    // tf::StampedTransform transform;
+    // try
+    // {
+    //   _tf.waitForTransform(_global_frame, "base_link", ros::Time(0), ros::Duration(0.2));
+    //   _tf.lookupTransform(_global_frame, "base_link", ros::Time(0), transform);
+    // }
+    // catch (tf::TransformException ex)
+    // {
+    //   ROS_ERROR("%s", ex.what());
+    // }
+    // tf::Vector3 min_range(0.4, -5.0, 0.3);
+    // tf::Vector3 max_range(3.0, 5.0, 2.0);
+    // tf::Vector3 mapped_min_range = transform * min_range;
+    // tf::Vector3 mapped_max_range = transform * max_range;
     // remove points that are below or above our height restrictions
-    pcl::PointCloud<pcl::PointXYZ>& obs_cloud = \
-                                *(_observation_list.front()._cloud);
+    pcl::PointCloud<pcl::PointXYZ>& obs_cloud =
+        *(_observation_list.front()._cloud);
     unsigned int cloud_size = cld_global->points.size();
 
     obs_cloud.points.resize(cloud_size);
@@ -194,11 +237,17 @@ void MeasurementBuffer::BufferPCLCloud(const \
       {
         obs_cloud.points.at(point_count++) = *it;
       }
+      // if (it->x >= mapped_min_range.x() && it->x <= mapped_max_range.x() &&
+      //     it->y >= mapped_min_range.y() && it->y <= mapped_max_range.y() &&
+      //     it->z >= mapped_min_range.z() && it->z <= mapped_max_range.z())
+      // {
+      //   obs_cloud.points.at(point_count++) = *it;
+      // }
     }
 
     // resize the cloud for the number of legal points
     obs_cloud.points.resize(point_count);
-    obs_cloud.header.stamp = cloud.header.stamp;
+    obs_cloud.header.stamp = cloudFiltered->header.stamp;
     obs_cloud.header.frame_id = cld_global->header.frame_id;
   }
   catch (tf::TransformException& ex)
@@ -207,7 +256,7 @@ void MeasurementBuffer::BufferPCLCloud(const \
     _observation_list.pop_front();
     ROS_ERROR( \
       "TF Exception for sensor frame: %s, cloud frame: %s, %s", \
-      _sensor_frame.c_str(), cloud.header.frame_id.c_str(), ex.what());
+      _sensor_frame.c_str(), cloudFiltered->header.frame_id.c_str(), ex.what());
     return;
   }
 
@@ -329,4 +378,3 @@ void MeasurementBuffer::Unlock(void)
 }
 
 }  // namespace buffer
-

@@ -72,7 +72,6 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
   _global_frame = std::string(layered_costmap_->getGlobalFrameID());
   ROS_INFO("%s's global frame is %s.", \
                                     getName().c_str(), _global_frame.c_str());
-
   bool track_unknown_space;
   double transform_tolerance, map_save_time;
   std::string topics_string;

@@ -126,6 +126,8 @@ private:
                          const boost::shared_ptr<buffer::MeasurementBuffer>& buffer);
   void LaserScanValidInfCallback(const sensor_msgs::LaserScanConstPtr& raw_message, \
                                  const boost::shared_ptr<buffer::MeasurementBuffer>& buffer);
+  void pointcloudFilter(const sensor_msgs::PointCloud2ConstPtr& cloud_in, \
+											sensor_msgs::PointCloud2& cloud_out);
   void PointCloud2Callback(const sensor_msgs::PointCloud2ConstPtr& message, \
                           const boost::shared_ptr<buffer::MeasurementBuffer>& buffer);
 
