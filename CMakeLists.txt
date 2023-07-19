@@ -105,6 +105,9 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
+add_executable(pointcloud_filter src/pointcloud_filter.cpp)
+target_link_libraries(pointcloud_filter ${catkin_LIBRARIES} ${PCL_LIBRARIES} yaml-cpp)
+
 add_executable(minimal_test
             test/minimal_test.cpp
 )
@@ -117,7 +120,7 @@ target_link_libraries(minimal_test
   ${catkin_LIBRARIES}
 )
 
-install(TARGETS ${PROJECT_NAME} minimal_test
+install(TARGETS ${PROJECT_NAME} minimal_test pointcloud_filter
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

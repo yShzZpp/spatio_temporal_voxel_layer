@@ -123,30 +123,6 @@ void MeasurementBuffer::BufferPCLCloud(const \
   const std::string origin_frame = \
                   _sensor_frame == "" ? cloud.header.frame_id : _sensor_frame;
 
-  tf::Vector3 min_range(-0.3, -5.0, 0.1);
-  tf::Vector3 max_range(2.0, 5.0, 5.0);
-  // 删除不在范围内的点
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloudFiltered(new pcl::PointCloud<pcl::PointXYZ>),cloud2 = cloud.makeShared();
-  // 定义PassThrough滤波器对象
-  pcl::PassThrough<pcl::PointXYZ> passFilter;
-
-  // 设置滤波器参数
-  passFilter.setInputCloud(cloud2);
-  passFilter.setFilterFieldName("x");
-  passFilter.setFilterLimits(-1.5, 0.2); // 设置x范围
-  passFilter.filter(*cloudFiltered);
-
-  passFilter.setInputCloud(cloudFiltered);
-  passFilter.setFilterFieldName("y");
-  passFilter.setFilterLimits(-5.0, 5.0); // 设置y范围
-  passFilter.filter(*cloudFiltered);
-
-  passFilter.setInputCloud(cloudFiltered);
-  passFilter.setFilterFieldName("z");
-  passFilter.setFilterLimits(0.0, 5.0); // 设置z范围
-  passFilter.filter(*cloudFiltered);
-	// ROS_ERROR("cloudFiltered size: %lu",cloudFiltered->size());
-
   try
   {
     // transform into global frame
@@ -154,7 +130,7 @@ void MeasurementBuffer::BufferPCLCloud(const \
     tf::Stamped<tf::Pose> local_pose, global_pose;
     local_pose.setOrigin(tf::Vector3(0, 0, 0));
     local_pose.setRotation(tf::Quaternion(0, 0, 0, 1));
-    local_pose.stamp_ = pcl_conversions::fromPCL(cloudFiltered->header).stamp;
+    local_pose.stamp_ = pcl_conversions::fromPCL(cloud.header).stamp;
     local_pose.frame_id_ = origin_frame;
 
     _tf.waitForTransform(_global_frame, local_pose.frame_id_, \
@@ -187,8 +163,8 @@ void MeasurementBuffer::BufferPCLCloud(const \
 
     point_cloud_ptr cld_global(new pcl::PointCloud<pcl::PointXYZ>);
 
-    pcl_ros::transformPointCloud(_global_frame, *cloudFiltered, *cld_global, _tf);
-    cld_global->header.stamp = cloudFiltered->header.stamp;
+    pcl_ros::transformPointCloud(_global_frame, cloud, *cld_global, _tf);
+    cld_global->header.stamp = cloud.header.stamp;
 
     // if user wants to use a voxel filter
     if ( _voxel_filter )
@@ -214,8 +190,22 @@ void MeasurementBuffer::BufferPCLCloud(const \
     unsigned int cloud_size = cld_global->points.size();
 
     obs_cloud.points.resize(cloud_size);
-    obs_cloud = *cld_global;
-    obs_cloud.header.stamp = cloudFiltered->header.stamp;
+    unsigned int point_count = 0;
+    pcl::PointCloud<pcl::PointXYZ>::iterator it;
+    for (it = cld_global->begin(); it != cld_global->end(); ++it)
+    {
+      if (it->z <= _max_obstacle_height && it->z >= _min_obstacle_height)
+      {
+        obs_cloud.points.at(point_count++) = *it;
+      }
+    }
+
+    // resize the cloud for the number of legal points
+    obs_cloud.points.resize(point_count);
+
+    // obs_cloud = *cld_global;
+    obs_cloud.header.stamp = cloud.header.stamp;
+    obs_cloud.header.frame_id = cld_global->header.frame_id;
   }
   catch (tf::TransformException& ex)
   {
@@ -223,7 +213,7 @@ void MeasurementBuffer::BufferPCLCloud(const \
     _observation_list.pop_front();
     ROS_ERROR( \
       "TF Exception for sensor frame: %s, cloud frame: %s, %s", \
-      _sensor_frame.c_str(), cloudFiltered->header.frame_id.c_str(), ex.what());
+      _sensor_frame.c_str(), cloud.header.frame_id.c_str(), ex.what());
     return;
   }
 
