@@ -195,7 +195,7 @@ void SpatioTemporalVoxelGrid::TemporalClearAndGenerateCostmap(                \
 
         const double time_until_decay = base_duration_to_decay - \
           frustum_acceleration;
-        if (time_until_decay < 0.)
+        if (time_until_decay > 0.25)
         {
           // expired by acceleration
           if(!this->ClearGridPoint(pt_index))
@@ -296,7 +296,7 @@ void SpatioTemporalVoxelGrid::operator()(const \
       float distance_2 = (it->x - obs._origin.x) * (it->x - obs._origin.x) \
                         + (it->y - obs._origin.y) * (it->y - obs._origin.y) \
                         + (it->z - obs._origin.z) * (it->z - obs._origin.z);
-      if (distance_2 > mark_range_2 || distance_2 < 0.0001)
+      if (distance_2 > mark_range_2 || distance_2 < 0.01)
       {
         continue;
       }
