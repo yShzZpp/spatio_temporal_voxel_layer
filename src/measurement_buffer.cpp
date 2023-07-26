@@ -195,6 +195,9 @@ void MeasurementBuffer::BufferPCLCloud(const \
     pcl::PointCloud<pcl::PointXYZ>::iterator it;
     for (it = cld_global->begin(); it != cld_global->end(); ++it)
     {
+      it->x = std::round(it->x * 100.0) / 100.0;
+      it->y = std::round(it->y * 100.0) / 100.0;
+      it->z = std::round(it->z * 100.0) / 100.0;
       if (it->z <= _max_obstacle_height && it->z >= _min_obstacle_height)
       {
         obs_cloud.points.at(point_count++) = *it;

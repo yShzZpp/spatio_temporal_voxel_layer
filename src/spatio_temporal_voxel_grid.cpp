@@ -149,6 +149,7 @@ void SpatioTemporalVoxelGrid::ClearFrustums(const \
       continue;
     }
 
+		// ROS_ERROR("clea fov: %f %f %f %f",it->_vertical_fov_in_rad,it->_vertical_start_fov_in_rad,it->_vertical_end_fov_in_rad, it->_vertical_fov_padding_in_m);
     frustum->SetPosition(it->_origin);
     frustum->SetOrientation(it->_orientation);
     frustum->TransformModel();
@@ -186,7 +187,7 @@ void SpatioTemporalVoxelGrid::TemporalClearAndGenerateCostmap(                \
         continue;
       }
 
-      if ( frustum_it->frustum->IsInside(this->IndexToWorld(pt_index)) )
+      if ( frustum_it->frustum->IsInside(this->IndexToWorld(pt_index)))
       {
         frustum_cycle = true;
 
@@ -195,7 +196,7 @@ void SpatioTemporalVoxelGrid::TemporalClearAndGenerateCostmap(                \
 
         const double time_until_decay = base_duration_to_decay - \
           frustum_acceleration;
-        if (time_until_decay > 0.25)
+        if (time_since_marking > 0.5)
         {
           // expired by acceleration
           if(!this->ClearGridPoint(pt_index))
@@ -290,13 +291,45 @@ void SpatioTemporalVoxelGrid::operator()(const \
     float mark_range_2 = obs._obstacle_range_in_m * obs._obstacle_range_in_m;
     const double cur_time = ros::WallTime::now().toSec();
 
+    geometry::Frustum* frustum;
+    frustum = new geometry::ThreeDimensionalLidarFrustum( \
+                                                  obs._vertical_fov_in_rad,
+                                                  obs._use_start_end_angle,
+                                                  obs._vertical_start_fov_in_rad,
+                                                  obs._vertical_end_fov_in_rad,
+                                                  obs._vertical_fov_padding_in_m,
+                                                  0.0,
+                                                  obs._min_z_in_m,
+                                                  obs._max_z_in_m);
+    frustum->SetPosition(obs._origin);
+    frustum->SetOrientation(obs._orientation);
+    frustum->TransformModel();
+		// ROS_ERROR("mark fov: %f %f %f %f", obs._vertical_fov_in_rad, obs._vertical_start_fov_in_rad, obs._vertical_end_fov_in_rad, obs._vertical_fov_padding_in_m);
+
     pcl::PointCloud<pcl::PointXYZ>::const_iterator it;
+		size_t i = 0;
+		// it = obs._cloud->points.begin() + 100;
+    // openvdb::Vec3d mark_grid1(this->WorldToIndex( \
+    //                                    openvdb::Vec3d(it->x, it->y, it->z)));
+		//
+		// auto world = this->IndexToWorld(openvdb::Coord (mark_grid1.x(), mark_grid1.y(), mark_grid1.z()));
+		// ROS_ERROR("odom:(%f, %f, %f) index:(%f, %f, %f) world:(%f, %f, %f)", it->x, it->y, it->z, mark_grid1.x(), mark_grid1.y(), mark_grid1.z(), world.x(), world.y(), world.z());
     for (it = obs._cloud->points.begin(); it < obs._cloud->points.end(); ++it)
     {
+		  bool inside = false;
       float distance_2 = (it->x - obs._origin.x) * (it->x - obs._origin.x) \
                         + (it->y - obs._origin.y) * (it->y - obs._origin.y) \
                         + (it->z - obs._origin.z) * (it->z - obs._origin.z);
-      if (distance_2 > mark_range_2 || distance_2 < 0.01)
+      if (frustum->IsInside(openvdb::Vec3d(it->x, it->y, it->z)))
+      {
+        i++;
+        inside = true;
+      }
+      else
+      {
+        inside = false;
+      }
+      if (distance_2 > mark_range_2 || distance_2 < 0.0225 || !inside)
       {
         continue;
       }
@@ -308,6 +341,10 @@ void SpatioTemporalVoxelGrid::operator()(const \
       {
         std::cout << "Failed to mark point." << std::endl;
       }
+    }
+    if (obs._cloud->size() - i)
+    {
+      ROS_ERROR("mark %lu inside %lu (%lu)", i, obs._cloud->size(), obs._cloud->size() - i);
     }
   }
   return;

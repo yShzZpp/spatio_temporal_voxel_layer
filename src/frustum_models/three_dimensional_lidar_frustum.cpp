@@ -72,6 +72,11 @@ ThreeDimensionalLidarFrustum::ThreeDimensionalLidarFrustum(const double& vFOV,
   if (_hFOV > 6.27)
   {
     _full_hFOV = true;
+    _need = true;
+  }
+  else
+  {
+    _need = false;
   }
 }
 
@@ -109,7 +114,7 @@ bool ThreeDimensionalLidarFrustum::IsInside(const openvdb::Vec3d &pt)
     return false;
   }
 
-  bool need = true;
+  bool need = false;
 
   // // Check if inside frustum valid vFOV
   // const double v_padded = fabs(transformed_pt[2]) + _vFOVPadding;
@@ -129,13 +134,16 @@ bool ThreeDimensionalLidarFrustum::IsInside(const openvdb::Vec3d &pt)
   }
   if ((v_padded * v_padded / radial_distance_squared) > tan_vFOV_squared)
   {
-    if (need)
+    if (_need)
     {
-      ROS_ERROR("x: %f, y: %f, z: %f r2: %f (tan2: %f > threshold: %f) ,_min_s: %f, _max_s: %f",
-                transformed_pt[0], transformed_pt[1], transformed_pt[2], radial_distance_squared,
-                (v_padded * v_padded / radial_distance_squared), tan_vFOV_squared, _min_d_squared, _max_d_squared);
-			ROS_ERROR("origin x:%f y:%f z:%f", _position[0], _position[1], _position[2]);
-			need = false;
+      double tan_spuared = v_padded * v_padded / radial_distance_squared;
+      double vFOV = std::atan(std::sqrt(tan_spuared));
+      ROS_ERROR("(%f,%f,%f) -> (%f,%f,%f) dist: %f (tan2: %f > threshold: %f) radian:%f",
+                pt[0], pt[1], pt[2],
+                transformed_pt[0], transformed_pt[1], transformed_pt[2],
+                std::sqrt(radial_distance_squared + transformed_pt[2] * transformed_pt[2]),
+                tan_spuared, tan_vFOV_squared, vFOV);
+      need = false;
     }
     return false;
   }

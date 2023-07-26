@@ -426,6 +426,10 @@ bool SpatioTemporalVoxelLayer::GetMarkingObservations( \
     _marking_buffers[i]->GetReadings(marking_observations);
     current = _marking_buffers[i]->UpdatedAtExpectedRate();
     _marking_buffers[i]->Unlock();
+    // for (auto i : marking_observations)
+    // {
+    //   ROS_ERROR("mark(%f,%f,%f) (%f,%f,%f,%f)", i._origin.x, i._origin.y, i._origin.z, i._orientation.x, i._orientation.y, i._orientation.z, i._orientation.w);
+    // }
   }
   marking_observations.insert(marking_observations.end(),   \
                               _static_observations.begin(), \
@@ -446,6 +450,10 @@ bool SpatioTemporalVoxelLayer::GetClearingObservations( \
     _clearing_buffers[i]->GetReadings(clearing_observations);
     current = _clearing_buffers[i]->UpdatedAtExpectedRate();
     _clearing_buffers[i]->Unlock();
+    // for (auto i : clearing_observations)
+    // {
+    //   ROS_ERROR("clear(%f,%f,%f) (%f,%f,%f,%f)", i._origin.x, i._origin.y, i._origin.z, i._orientation.x, i._orientation.y, i._orientation.z, i._orientation.w);
+    // }
   }
   return current;
 }

@@ -71,7 +71,7 @@ private:
   double Dot(const VectorWithPt3D&, const openvdb::Vec3d&) const;
   double Dot(const VectorWithPt3D&, const Eigen::Vector3d&) const;
 
-  bool _use_start_end_angle;
+  bool _use_start_end_angle,_need;
   double _vFOV, _vSFOV, _vEFOV, _vFOVPadding, _hFOV, _min_d, _max_d;
   double _hFOVhalf;
   double _min_d_squared, _max_d_squared;
