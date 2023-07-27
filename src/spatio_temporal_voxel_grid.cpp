@@ -160,15 +160,6 @@ void SpatioTemporalVoxelGrid::ClearFrustums(const \
   return;
 }
 
-bool isDistanceValid(const openvdb::Vec3d& distance)
-{
-  if (distance.x() * distance.x() + distance.y() * distance.y() + distance.z() * distance.z() > 100)
-  {
-    return false;
-  }
-  return true;
-}
-
 /*****************************************************************************/
 void SpatioTemporalVoxelGrid::TemporalClearAndGenerateCostmap(                \
                                           std::vector<frustum_model>& frustums)
@@ -197,7 +188,7 @@ void SpatioTemporalVoxelGrid::TemporalClearAndGenerateCostmap(                \
         continue;
       }
 
-      if ( frustum_it->frustum->IsInside(this->IndexToWorld(pt_index)) || !isDistanceValid(this->IndexToWorld(pt_index)))
+      if ( frustum_it->frustum->IsInside(this->IndexToWorld(pt_index)))
       {
         frustum_cycle = true;
 
@@ -347,8 +338,6 @@ void SpatioTemporalVoxelGrid::operator()(const \
       {
         continue;
       }
-      // openvdb::Vec3d mark_grid(this->WorldToIndex( \
-      //                                  openvdb::Vec3d(it->x, it->y, it->z)));
 
       if(!this->MarkGridPoint(openvdb::Coord(mark_grid[0], mark_grid[1], \
                                              mark_grid[2]), cur_time))

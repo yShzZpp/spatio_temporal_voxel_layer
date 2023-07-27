@@ -1,16 +1,16 @@
 livox_obstacle_layer:
   enabled:               true
-  voxel_decay:           1000.0   #seconds if linear, e^n if exponential
+  voxel_decay:           100.0   #seconds if linear, e^n if exponential
   decay_model:           0      #0=linear, 1=exponential, -1=persistent
-  voxel_size:            0.100   #meters
+  obstacle_duration:     0.25
+  voxel_size:            0.060   #meters 
   #track_unknown_space:   true   #default space is unknown
-  observation_persistence: 0.0  #seconds
   max_obstacle_height:   2.0    #meters
-  mark_threshold:        0.3      #voxel height
+  mark_threshold:        0.3      #voxel min height 
   update_footprint_enabled: false
   combination_method:    1      #1=max, 0=override
-  obstacle_range:        3.0    #meters
-  origin_z:              0.0    #meters
+  obstacle_range:        3.0    #meters The maximum distance of an obstacle
+  origin_z:              0.0    #meters unused
   publish_voxel_map:     false  # default off
   transform_tolerance:   0.2    # seconds
   mapping_mode:          false  # default off, saves map not for navigation
@@ -19,7 +19,6 @@ livox_obstacle_layer:
   livox_mark:
     data_type: PointCloud2
     topic: livox/lidar_filter
-    sensor_frame: laser_livox
     marking: true
     clearing: true
     min_obstacle_height: 0.4     #default 0, meters 
@@ -30,15 +29,29 @@ livox_obstacle_layer:
     clear_after_reading: true    #default false, clear the buffer after the layer gets readings from it
     #filter: "voxel"              #default passthrough, apply "voxel", "passthrough", or no filter to sensor data, recommended to have at one filter on
     voxel_filter: false
-    voxel_min_points: 0          #default 0, minimum points per voxel for voxel filter
-    min_z: 0.0                     #default 0, meters
-    max_z: 10.0                    #default 10, meters
-    use_start_end_angle:  true     #default false, if set to true, the following vertical_fov_start_angle end vertical_fov_end_angle is used instead of vertical_fov_ange
-    use_start_end_fov:  true     #default false, if set to true, the following vertical_fov_start_angle end vertical_fov_end_angle is used instead of vertical_fov_ange
+    min_z: 0.0                     #default 0, meters 计算体素:离的最小值，小于则认为看不见
+    max_z: 10.0                    #default 10, meters 计算体素距离的最大值，大于则认为看不见
     vertical_fov_angle: 0.70       #default 0.7, radians
+    use_start_end_angle:  true     #default false, if set to true, the following vertical_fov_start_angle end vertical_fov_end_angle is used instead of vertical_fov_ange
     vertical_fov_start_angle: -0.15 #default 0.7, radians
     vertical_fov_end_angle: 1.00   #default 0.7, radians
     horizontal_fov_angle: 0.28     #default 1.04, radians
     decay_acceleration: 3.0        #default 0, 1/s^2. If laser scanner MUST be 0
     model_type: 1
+  livox_clear:
+    enabled: true                #default true, can be toggled on/off with associated service call
+    data_type: PointCloud2
+    topic: livox/lidar_filter
+    marking: false
+    clearing: true
+    min_z: 0.0                     #default 0, meters
+    max_z: 10.0                   #default 10, meters
+    use_start_end_angle:  true     #default false, if set to true, the following vertical_fov_start_angle end vertical_fov_end_angle is used instead of vertical_fov_ange
+    use_start_end_fov:  true     #default false, if set to true, the following vertical_fov_start_angle end vertical_fov_end_angle is used instead of vertical_fov_ange
+    vertical_fov_angle: 0.70       #default 0.7, radians
+    vertical_fov_start_angle: -0.00 #default 0.7, radians
+    vertical_fov_end_angle: 0.99   #default 0.7, radians
+    horizontal_fov_angle: 0.28     #default 1.04, radians
+    decay_acceleration: 3.0        #default 0, 1/s^2. If laser scanner MUST be 0
+    model_type: 1                  #default 0 (depth camera). Use 1 for 3D Lidar
 

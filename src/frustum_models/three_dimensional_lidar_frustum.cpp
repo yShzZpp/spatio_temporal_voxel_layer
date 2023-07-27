@@ -106,12 +106,14 @@ bool ThreeDimensionalLidarFrustum::IsInside(const openvdb::Vec3d &pt)
   const double radial_distance_squared = \
                                    (transformed_pt[0] * transformed_pt[0]) + \
                                    (transformed_pt[1] * transformed_pt[1]);
+	const double dist_squared = radial_distance_squared + \
+															 (transformed_pt[2] * transformed_pt[2]);
 
   // Check if inside frustum valid range
-  if (radial_distance_squared > _max_d_squared || 
-      radial_distance_squared < _min_d_squared)
+  if (dist_squared > _max_d_squared || 
+      dist_squared < _min_d_squared)
   {
-    return false;
+    return true;
   }
 
   bool need = false;
