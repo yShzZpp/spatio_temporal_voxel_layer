@@ -44,10 +44,11 @@ namespace volume_grid
 SpatioTemporalVoxelGrid::SpatioTemporalVoxelGrid(const float& voxel_size, \
                    const double& background_value,                        \
                    const GlobalDecayModel& decay_model,                   \
-                   const double& voxel_decay, const bool& pub_voxels) :
+                   const double& voxel_decay, const double& obstacle_duration, const bool& pub_voxels) :
                    _background_value(background_value),                   \
                    _voxel_size(voxel_size),                               \
                    _decay_model(decay_model),                             \
+                   _obstacle_duration(obstacle_duration),                 \
                    _voxel_decay(voxel_decay),                             \
                    _pub_voxels(pub_voxels),                               \
                    _pc(new pcl::PointCloud<pcl::PointXYZ>),               \
@@ -159,6 +160,15 @@ void SpatioTemporalVoxelGrid::ClearFrustums(const \
   return;
 }
 
+bool isDistanceValid(const openvdb::Vec3d& distance)
+{
+  if (distance.x() * distance.x() + distance.y() * distance.y() + distance.z() * distance.z() > 100)
+  {
+    return false;
+  }
+  return true;
+}
+
 /*****************************************************************************/
 void SpatioTemporalVoxelGrid::TemporalClearAndGenerateCostmap(                \
                                           std::vector<frustum_model>& frustums)
@@ -187,7 +197,7 @@ void SpatioTemporalVoxelGrid::TemporalClearAndGenerateCostmap(                \
         continue;
       }
 
-      if ( frustum_it->frustum->IsInside(this->IndexToWorld(pt_index)))
+      if ( frustum_it->frustum->IsInside(this->IndexToWorld(pt_index)) || !isDistanceValid(this->IndexToWorld(pt_index)))
       {
         frustum_cycle = true;
 
@@ -196,7 +206,7 @@ void SpatioTemporalVoxelGrid::TemporalClearAndGenerateCostmap(                \
 
         const double time_until_decay = base_duration_to_decay - \
           frustum_acceleration;
-        if (time_since_marking > 0.5)
+        if (time_since_marking > _obstacle_duration)
         {
           // expired by acceleration
           if(!this->ClearGridPoint(pt_index))
@@ -304,7 +314,6 @@ void SpatioTemporalVoxelGrid::operator()(const \
     frustum->SetPosition(obs._origin);
     frustum->SetOrientation(obs._orientation);
     frustum->TransformModel();
-		// ROS_ERROR("mark fov: %f %f %f %f", obs._vertical_fov_in_rad, obs._vertical_start_fov_in_rad, obs._vertical_end_fov_in_rad, obs._vertical_fov_padding_in_m);
 
     pcl::PointCloud<pcl::PointXYZ>::const_iterator it;
 		size_t i = 0;
@@ -316,11 +325,16 @@ void SpatioTemporalVoxelGrid::operator()(const \
 		// ROS_ERROR("odom:(%f, %f, %f) index:(%f, %f, %f) world:(%f, %f, %f)", it->x, it->y, it->z, mark_grid1.x(), mark_grid1.y(), mark_grid1.z(), world.x(), world.y(), world.z());
     for (it = obs._cloud->points.begin(); it < obs._cloud->points.end(); ++it)
     {
-		  bool inside = false;
+		  bool inside = true;
       float distance_2 = (it->x - obs._origin.x) * (it->x - obs._origin.x) \
                         + (it->y - obs._origin.y) * (it->y - obs._origin.y) \
                         + (it->z - obs._origin.z) * (it->z - obs._origin.z);
-      if (frustum->IsInside(openvdb::Vec3d(it->x, it->y, it->z)))
+      openvdb::Vec3d mark_grid(this->WorldToIndex( \
+                                       openvdb::Vec3d(it->x, it->y, it->z)));
+      auto world = this->IndexToWorld(openvdb::Coord (mark_grid.x(), mark_grid.y(), mark_grid.z()));
+      if (frustum->IsInside(openvdb::Vec3d(world.x(), world.y(), world.z())))
+      // if (frustum->IsInside(openvdb::Vec3d(it->x, it->y, it->z)))
+      // if (true)
       {
         i++;
         inside = true;
@@ -333,8 +347,8 @@ void SpatioTemporalVoxelGrid::operator()(const \
       {
         continue;
       }
-      openvdb::Vec3d mark_grid(this->WorldToIndex( \
-                                       openvdb::Vec3d(it->x, it->y, it->z)));
+      // openvdb::Vec3d mark_grid(this->WorldToIndex( \
+      //                                  openvdb::Vec3d(it->x, it->y, it->z)));
 
       if(!this->MarkGridPoint(openvdb::Coord(mark_grid[0], mark_grid[1], \
                                              mark_grid[2]), cur_time))

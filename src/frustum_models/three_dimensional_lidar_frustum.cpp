@@ -134,7 +134,7 @@ bool ThreeDimensionalLidarFrustum::IsInside(const openvdb::Vec3d &pt)
   }
   if ((v_padded * v_padded / radial_distance_squared) > tan_vFOV_squared)
   {
-    if (_need)
+    if (need)
     {
       double tan_spuared = v_padded * v_padded / radial_distance_squared;
       double vFOV = std::atan(std::sqrt(tan_spuared));

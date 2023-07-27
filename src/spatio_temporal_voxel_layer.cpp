@@ -88,6 +88,8 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
   nh.param("publish_voxel_map", _publish_voxels, false);
   // size of each voxel in meters
   nh.param("voxel_size", _voxel_size, 0.05);
+  // The time the obstacle disappears within sight of the lidar fov
+  nh.param("obstacle_duration", _obstacle_duration, 0.5);
   // 1=takes highest in layers, 0=takes current layer
   nh.param("combination_method", _combination_method, 1);
   // number of voxels per vertical needed to have obstacle
@@ -131,6 +133,7 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
                                                         (double)default_value_, \
                                                         _decay_model, \
                                                         _voxel_decay, \
+                                                        _obstacle_duration, \
                                                         _publish_voxels);
   matchSize();
   current_ = true;
@@ -631,7 +634,7 @@ void SpatioTemporalVoxelLayer::DynamicReconfigureCallback( \
     delete _voxel_grid;
     _voxel_grid = new volume_grid::SpatioTemporalVoxelGrid(_voxel_size, \
       static_cast<double>(default_value_), _decay_model, \
-      _voxel_decay, _publish_voxels);
+      _voxel_decay, _obstacle_duration, _publish_voxels);
   }
 }
 

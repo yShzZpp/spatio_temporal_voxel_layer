@@ -122,7 +122,7 @@ public:
 
   SpatioTemporalVoxelGrid(const float& voxel_size, const double& background_value,
                           const GlobalDecayModel& decay_model, const double& voxel_decay,
-                          const bool& pub_voxels);
+                          const double& observation_duration, const bool& pub_voxels);
   ~SpatioTemporalVoxelGrid(void);
 
   // Core making and clearing functions
@@ -166,7 +166,7 @@ protected:
 
   mutable openvdb::DoubleGrid::Ptr _grid;
   GlobalDecayModel                _decay_model;
-  double                          _background_value, _voxel_size, _voxel_decay;
+  double                          _background_value, _voxel_size, _voxel_decay , _obstacle_duration;
   bool                            _pub_voxels;
   pcl::PointCloud<pcl::PointXYZ>::Ptr     _pc;
   std::unordered_map<occupany_cell, uint>* _cost_map;
