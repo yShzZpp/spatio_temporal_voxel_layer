@@ -345,10 +345,10 @@ void SpatioTemporalVoxelGrid::operator()(const \
         std::cout << "Failed to mark point." << std::endl;
       }
     }
-    if (obs._cloud->size() - i)
-    {
-      ROS_ERROR("mark %lu inside %lu (%lu)", i, obs._cloud->size(), obs._cloud->size() - i);
-    }
+    // if (obs._cloud->size() - i)
+    // {
+    //   ROS_ERROR("mark %lu inside %lu (%lu)", i, obs._cloud->size(), obs._cloud->size() - i);
+    // }
   }
   return;
 }
